@@ -1,22 +1,3 @@
-#!/usr/bin/env python3
-"""
-Build a SQLite database from the warehouse wave data files in this folder.
-
-This version auto-detects your files, so it works whether your data is:
-  - five separate Royer CSVs + a Picking_Wave Excel (the 100-row test set), OR
-  - one multi-sheet Royer Excel + a Picking_Wave CSV (the full production set).
-
-It scans the folder for every .csv and .xlsx file, loads each one (each sheet of
-a multi-sheet workbook becomes its own table), and names the tables consistently:
-EXP_ENT, EXP_DET, ORD_ENT, ORD_DET, VAG_DET, Picking_Wave.
-
-Re-running rebuilds the database from scratch, so when your data grows you just
-drop the newer files into the folder and run it again.
-
-Usage:
-    python build_db.py
-    python build_db.py --folder . --out wavedata.db
-"""
 
 import argparse
 import re
@@ -35,9 +16,6 @@ KEY_COLUMNS = {"wavenumber", "vagno", "ordno", "expno", "detno", "ref", "operato
 
 
 def clean_col(name: str) -> str:
-    """Make a name SQL-friendly while keeping it readable.
-    'Size (US)' -> 'Size_US';  'quantityToPick (units)' -> 'quantityToPick_units'.
-    """
     name = str(name).strip()
     name = re.sub(r"[^0-9A-Za-z]+", "_", name)
     name = re.sub(r"_+", "_", name).strip("_")
@@ -45,7 +23,6 @@ def clean_col(name: str) -> str:
 
 
 def canonical_table(source_name: str) -> str:
-    """Map a file/sheet name to a clean, consistent table name."""
     upper = re.sub(r"[^A-Za-z0-9]+", "_", str(source_name)).upper()
     for token in CANONICAL:
         if token in upper:
@@ -56,7 +33,6 @@ def canonical_table(source_name: str) -> str:
 
 
 def detect_sep(path: Path) -> str:
-    """Guess the CSV delimiter from the header line (these files use ';')."""
     with open(path, encoding="utf-8-sig") as f:
         first = f.readline()
     return ";" if first.count(";") >= first.count(",") else ","
